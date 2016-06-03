@@ -2,7 +2,7 @@
 var crypto = require('crypto');
 var User = require('../models/user.js');
 var Post = require('../models/post.js');
-
+var Comment = require('../models/comments.js');
 /* GET home page. */
 module.exports = function (app) {
 
@@ -16,6 +16,8 @@ module.exports = function (app) {
             if(err){
                 posts = [];
             }
+            /*Express的模板引擎常用的是ejs和jade。它预留了变量
+            res.render()就是将我们的数据填充到模板后展示出完整的页面。*/
             res.render('index', {
                 title: '主页',
                 user:req.session.user,
@@ -196,6 +198,33 @@ module.exports = function (app) {
                 success:req.flash('success').toString(),
                 error:req.flash('error').toString()
             });
+        });
+    });
+
+    /*发表留言*/
+    app.post('/u/:name/:day/:title', function (req,res) {
+       var date = new Date(),
+           time = date.getFullYear() + "-" + (date.getMonth() + 1) + date.getDay() +
+                   " " + date.getHours() + ":" + (date.getMinutes() < 10 ? "0"+date.getMinutes() :date.getMinutes());
+       /*留言信息*/
+        var comment = {
+            /*区别于params(请求参数)*/
+          name:req.body.name,
+            email:req.body.email,
+            website:req.body.website,
+            time:time,
+            content:req.body.content
+        };
+        //创建留言对象
+        var newComment = new Comment(req.params.name,req.params.day,req.params.title,comment);
+        //留言并返回
+        newComment.save(function (err) {
+            if(err){
+                req.flash('error',err);
+                res.redirect('back');
+            }
+            req.flash('success',"留言成功！");
+            res.redirect('back');
         });
     });
 

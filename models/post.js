@@ -27,7 +27,8 @@ Post.prototype.save = function(callback){
         name:this.name,
         time:time,
         title:this.title,
-        post:this.post
+        post:this.post,
+        comments:[]
     };
     //打开数据库
     mongodb.open(function (err,db) {
@@ -117,8 +118,15 @@ Post.getOne = function (name,day,title,callback) {
                 if(err){
                     return callback(err);
                 }
-                //doc是一个查询后生成的对象
                 doc.post = markdown.toHTML(doc.post);
+                //doc是一个查询后生成的对象
+                if(doc.comments){
+
+                    doc.comments.forEach(function (comment) {
+                       comment.content = markdown.toHTML(comment.content);
+                    });
+                }
+
                 /*返回查询的文章*/
                 callback(null,doc);
             });
