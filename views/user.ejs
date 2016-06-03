@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title><%= title %></title>
+    <link rel='stylesheet' href='/stylesheets/style.css' />
+  </head>
+  <body>
+    <%- include header%>
+    <!--数组成为对象-->
+    <% posts.forEach(function(post,index) { %>
+    <p><h2><a href="/u/<%= post.name %>/<%= post.time.day %>/<%= post.title%>"><%= post.title%></a></h2></p>
+    <!--发布信息-->
+    <p class="info">
+        作者：<a href="#"><%= post.name %></a>
+        日期：<%= post.time.minute%>
+    </p>
+    <!--文章内容-->
+    <p>
+      <%- post.post%>
+    </p>
+    <% } )%>
+    <%- include footer%>
+  </body>
+</html>
