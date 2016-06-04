@@ -58,7 +58,7 @@ Post.prototype.save = function(callback){
 };
 
 //读取文章以及相关信息
-Post.getAll = function (name,callback) {
+Post.getTen = function (name,page,callback) {
 
     //打开数据库
     mongodb.open(function(err,db){
@@ -78,20 +78,26 @@ Post.getAll = function (name,callback) {
                 //如果name = null,则不限制
                 query.name = name;
             }
-            //根据query对象查询文章
-            collection.find(query).sort({
-                time:-1
-                /*多个对象读取成数组对象*/
-            }).toArray(function(err, docs){
-                mongodb.close();
-                if(err){
-                    return callback(err);
-                }
-                docs.forEach(function (doc) {
-                    doc.post = markdown.toHTML(doc.post);
+            //使用count返回特定查询的文档数目total
+            collection.count(query, function (err,total) {
+               //根据query对象进行查询，并跳过前面(page - 1) * 10条结果，返回之后的10个结果
+                collection.find(query,{
+                    skip:(page - 1) * 10,
+                    limit:10
+                }).sort({
+                    time:-1
+                }).toArray(function (err,docs) {
+                    mongodb.close();
+                    if(err){
+                        return callback(err);
+                    }
+                    //解析markdown为html
+                    docs.forEach(function (doc) {
+                       doc.post = markdown.toHTML(doc.post);
+                    });
+
+                     callback(null,docs,total);
                 });
-                //以数组形式返回查询的结果
-                callback(null,docs);
             });
         });
     });
@@ -133,7 +139,7 @@ Post.getOne = function (name,day,title,callback) {
         });
 
     });
-}
+};
 
 //返回原始发表的内容
 Post.edit = function (name,day,title,callback) {
@@ -162,7 +168,7 @@ Post.edit = function (name,day,title,callback) {
 
         });
     })
-}
+};
 
 //更新文章和相关信息
 Post.update = function (name,day,title,post,callback) {
@@ -193,7 +199,7 @@ Post.update = function (name,day,title,post,callback) {
             });
         });
     });
-}
+};
 
 /*
 删除一篇文章*/
@@ -223,4 +229,34 @@ Post.remove = function (name,day,title,callback) {
             });
         });
     });
-}
+};
+
+//返回所有文章的存档信息
+Post.getArchive = function (callback) {
+    mongodb.open(function (err,db) {
+       if(err){
+           return callback(err);
+       }
+        db.collection('post', function (err,collection) {
+            if(err){
+                mongodb.close();
+                return callback(err);
+            }
+            //返回只包含name,time,title属性的文档组成的文档数组
+            collection.find(
+                {}, {
+                    "name":1,
+                    "time":1,
+                    "title":1
+                }).sort({
+                tiem:-1
+            }).toArray(function (err,docs) {
+                mongodb.close();
+                if(err){
+                    return callback(err);
+                }
+                callback(null,docs);
+            });
+        });
+    });
+};

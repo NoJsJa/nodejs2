@@ -12,7 +12,9 @@ module.exports = function (app) {
     /*获取首页*/
     app.get('/', function(req, res) {
         //获取所有文章
-        Post.getAll(null,function(err,posts){
+        //判断是否是第一页，并把请求的页数转换成number类型
+        var page = req.query.p ? parseInt(req.query.p):1;
+        Post.getTen(null,page,function(err,posts,total){
             if(err){
                 posts = [];
             }
@@ -22,6 +24,9 @@ module.exports = function (app) {
                 title: '主页',
                 user:req.session.user,
                 posts:posts,
+                page:page,
+                isFirstPage:(page - 1) == 0,
+                isLastPage:((page - 1) * 10 + posts.length) == total,
                 success:req.flash('success').toString(),
                 error:req.flash('error').toString()
             });
@@ -160,14 +165,15 @@ module.exports = function (app) {
 
     /*获取一个人的文章*/
     app.get('/u/:name', function (req,res) {
+        var page = req.query.p ? parseInt(req.query.p):1;
         //检查用户是否存在
         User.get(req.params.name,function(err,user){
             if(!user){
                req.flash('error',err);
                return res.redirect('/');
             }
-            //查询并返回该用户的所有文章
-            Post.getAll(user.name,function(err,posts){
+            //查询并返回该用户的所第page页的10篇文章
+            Post.getTen(user.name,page, function(err,posts,total){
                 if(err){
                     req.flash('error',err);
                     res.redirect('/');
@@ -176,6 +182,9 @@ module.exports = function (app) {
                     title:user.name,
                     posts:posts,
                     user:req.session.user,
+                    page:page,
+                    isFirstPage:(page - 1) == 0,
+                    isLastPage:((page - 1) * 10 + posts.length) == total,
                     error:req.flash('error').toString(),
                     success:req.flash('success').toString()
                 });
@@ -275,6 +284,23 @@ module.exports = function (app) {
             req.flash('success','删除成功！');
             res.redirect('/');
         });
+    });
+
+    //读取存档
+    app.get('/archive', function (req,res) {
+       Post.getArchive(function (err,posts) {
+          if(err){
+              req.flash('error',err);
+              return res.redirect('/');
+          }
+           res.render('archive',{
+              title:'存档',
+               posts:posts,
+               user:req.session.user,
+               success:req.flash('success').toString(),
+               error:req.flash('error').toString()
+           });
+       });
     });
 
     /*注销账号*/
