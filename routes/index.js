@@ -134,7 +134,8 @@ module.exports = function (app) {
     app.post('/post',checkLogin);
     app.post('/post', function (req, res) {
         var currentUser = req.session.user,
-            post = new Post(currentUser.name,req.body.title,req.body.post);
+            tags = [req.body.tag1,req.body.tag2,req.body.tag3],//文章标签
+            post = new Post(currentUser.name,currentUser.head,req.body.title,req.body.post,tags);
         post.save(function (err) {
             if(err){
                 req.flash('error',err);
@@ -161,6 +162,33 @@ module.exports = function (app) {
     app.post('/upload', function (req,res) {
         req.flash('success','文件上传成功！');
         res.redirect('/');
+    });
+
+    //友情链接
+    app.get('/links', function (req,res) {
+       res.render('links',{
+           title:'友情链接',
+           user:req.session.user,
+           success:req.flash('success').toString(),
+           error:req.flash('error').toString()
+       });
+    });
+
+    //获取搜索到的文章
+    app.get('/search', function (req,res) {
+       Post.search(req.query.keyword, function (err,posts) {
+           if(err){
+               req.flash('error',err);
+               return res.redirect('/');
+           }
+           res.render('search',{
+               title:"SEARCH:" + erq.query.keyword,
+               posts:posts,
+               user:req.session.user,
+               success:req.flash('success').toString(),
+               error:req.flash('error').toString()
+           });
+       });
     });
 
     /*获取一个人的文章*/
@@ -216,9 +244,13 @@ module.exports = function (app) {
            time = date.getFullYear() + "-" + (date.getMonth() + 1) + date.getDay() +
                    " " + date.getHours() + ":" + (date.getMinutes() < 10 ? "0"+date.getMinutes() :date.getMinutes());
        /*留言信息*/
+        var md5 = crypto.createHash('md5'),
+            email_MD5 = md5.update(req.body.email.toLowerCase()).digest('hex'),
+            head = "http://www.gravatar.com/avatar/" + email_MD5 + "?s=48";
         var comment = {
             /*区别于params(请求参数)*/
           name:req.body.name,
+            head:head,
             email:req.body.email,
             website:req.body.website,
             time:time,
@@ -303,12 +335,52 @@ module.exports = function (app) {
        });
     });
 
+    //读取标签
+    app.get('/tags', function (req,res) {
+       Post.getTags(function (err,posts) {
+           if(err){
+               req.flash('error',err);
+               return res.redirect('/');
+               return res.redirect('/');
+           }
+           res.render('tags',{
+               title:'标签',
+               posts:posts,
+               user:req.session.user,
+               success:req.flash('success').toString(),
+               error:req.flash('error').toString()
+           });
+       });
+    });
+    
+    //读取某一个具体的标签的
+    app.get('/tags/:tag', function (req,res) {
+       Post.getTag(req.params.tag, function (err,posts) {
+          if(err){
+              req.flash('error',err);
+              return res.redirect('/')
+          }
+           res.render('tag',{
+               title:'TAG: ' + req.params.tag,
+               posts:posts,
+               user:req.session.user,
+               success:req.flash('success').toString(),
+               error:req.flash('error').toString()
+           });
+       });
+    });
+
     /*注销账号*/
     app.get('/logout',checkLogin);
     app.get('/logout', function(req, res){
         req.session.user = null;
         req.flash('success','登出成功！');
         res.redirect('/');
+    });
+
+    //所有路由都不匹配则跳转到错误页面
+    app.use(function (req,res) {
+       res.render('404');
     });
 
     //以下两个函数用来检测是否登录，并通过next()转移控制权

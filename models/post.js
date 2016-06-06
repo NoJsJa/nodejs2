@@ -2,10 +2,12 @@ var mongodb = require('./db');
 var markdown = require('markdown').markdown;
 
 /*相当于一个构造器*/
-function Post(name, title, post){
+function Post(name,head,title, post,tags){
     this.name = name;
+    this.head = head;
     this.title = title;
     this.post = post;
+    this.tags = tags;
 }
 
 module.exports = Post;
@@ -25,10 +27,13 @@ Post.prototype.save = function(callback){
     //要存入数据库的文档
     var post = {
         name:this.name,
+        head:this.head,
         time:time,
+        tags:this.tags,
         title:this.title,
         post:this.post,
-        comments:[]
+        comments:[],
+        pv:0
     };
     //打开数据库
     mongodb.open(function (err,db) {
@@ -120,9 +125,23 @@ Post.getOne = function (name,day,title,callback) {
                 "time.day":day,
                 "title":title
             }, function (err,doc) {
-                mongodb.close();
                 if(err){
                     return callback(err);
+                }
+                //增加文章的访问统计
+                if(doc){
+                    collection.update({
+                        "name":name,
+                        "title":title,
+                        "time.day":day
+                    },{
+                        $inc:{'pv':1}
+                    }, function (err) {
+                       mongodb.close();
+                        if(err){
+                            return callback(err);
+                       }
+                    });
                 }
                 doc.post = markdown.toHTML(doc.post);
                 //doc是一个查询后生成的对象
@@ -260,3 +279,107 @@ Post.getArchive = function (callback) {
         });
     });
 };
+
+//获得所有标签信息
+Post.getTags = function(callback){
+    mongodb.open(function (err,db) {
+       if(err){
+           return callback(err);
+       }
+        db.collection('posts', function (err,collection) {
+           if(err){
+               mongodb.close();
+               return callback(err);
+           }
+            //distinct用来找出给定键的所有不同值
+            //有时候我们发行表文章的tags是一样的，这样避免获取了重复的标签
+            collection.distinct('tags', function (err,docs) {
+               mongodb.close();
+                if(err){
+                    return callback(err);
+                }
+                callback(null,docs);
+            });
+        });
+    });
+}
+
+//返回含有标签的所有文章信息
+Post.getTag = function(tag,callback){
+    mongodb.open(function (err,db) {
+       if(err){
+           return callback(err);
+       } 
+        db.collection('posts', function (err,collection) {
+           if(err){
+               mongodb.close();
+               return callback(err);
+           } 
+            //查询所有tags数组内包含的tag的文档
+            //并返回只含有name\time\title组成的数组
+            collection.find({
+                "tags":tag
+            },{
+                "name":1,
+                "time":1,
+                "title":1
+            }).sort({
+                time:-1
+            }).toArray(function (err,docs) {
+                mongodb.close();
+                if(err){
+                    return callback(err);
+                }
+                callback(null,docs);
+            });
+        });
+    });
+};
+
+//文章搜索:返回所有通过标题搜索的文章的信息
+Post.search = function (keyword,callback) {
+    mongodb.open(function (err,db) {
+       if(err){
+           return callback(err);
+       }
+        db.collection('posts', function (err,collection) {
+           if(err){
+               mongodb.close();
+               return callback(err);
+           }
+            //不区分大小写
+            var pattern = new RegExp(keyword,"i");
+            collection.find({
+                "title":pattern
+            },{
+                "name":1,
+                "title":1,
+                "time":1
+            }).sort({
+                time:-1
+            }).toArray(function (err,docs) {
+               mongodb.close();
+                if(err){
+                    return callback(err);
+                }
+                callback(null,docs);
+            });
+        });
+    });
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

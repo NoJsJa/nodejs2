@@ -13,11 +13,19 @@
     <p class="info">
         作者：<a href="#"><%= post.name %></a>
         日期：<%= post.time.minute%>
+        <% console.log(post.tags);%>
+        <% if(post.tags) { %>
+            标签：
+            <% post.tags.forEach(function (tag,index) { %>
+                <% if (tag) { %>
+                    <a class="tag" href="/tags/<%= tag %>"><%= tag %></a>
+                <% } %>
+            <% }) %>
+        <% } %>
     </p>
     <!--文章内容-->
-    <p>
-      <%- post.post%>
-    </p>
+    <p><%- post.post%></p>
+    <p class="info">阅读： <%= post.pv %> | 评论：<%= post.comments.length %></p>
     <% } )%>
     <%- include paging%>
     <%- include footer%>

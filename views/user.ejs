@@ -8,16 +8,23 @@
     <%- include header%>
     <!--数组成为对象-->
     <% posts.forEach(function(post,index) { %>
-    <p><h2><a href="/u/<%= post.name %>/<%= post.time.day %>/<%= post.title%>"><%= post.title%></a></h2></p>
+    <p><h2><a href="/u/<%= post.name %>"><img src="<%= post.head %>" class="r_head"></a><a href="/u/<%= post.name %>/<%= post.time.day %>/<%= post.title%>"><%= post.title%></a></h2></p>
     <!--发布信息-->
     <p class="info">
         作者：<a href="#"><%= post.name %></a>
         日期：<%= post.time.minute%>
+        <% if(post.tags) { %>
+            标签：
+            <% post.tags.forEach(function (tag,index) { %>
+            <% if (tag) { %>
+            <a class="tag" href="/tags/<%= tag %>"><%= tag %></a>
+            <% } %>
+            <% }) %>
+        <% } %>
     </p>
     <!--文章内容-->
-    <p>
-      <%- post.post%>
-    </p>
+    <p><%- post.post%></p>
+    <p class="info">阅读： <%= post.pv %> | 评论：<%= post.comments.length %></p>
     <% } )%>
     <%- include paging%>
     <%- include footer%>
